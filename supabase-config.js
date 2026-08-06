@@ -480,3 +480,190 @@ async function toggleFollow(targetUserId) {
     return { following: true, error };
   }
 }
+
+// ============================================================
+// 第三阶段：后台管理面板 API
+// ============================================================
+
+// 检查当前用户是否为管理员
+async function checkIsAdmin() {
+  if (!supabaseClient) return false;
+  const user = await getCurrentUser();
+  if (!user) return false;
+  
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single();
+  
+  if (error || !data) return false;
+  return data.is_admin === true;
+}
+
+// 获取仪表盘统计数据
+async function fetchDashboardStats() {
+  if (!supabaseClient) return { error: 'Supabase 未初始化' };
+  const results = {};
+  
+  // 用户总数
+  const { count: totalUsers } = await supabaseClient
+    .from('profiles').select('*', { count: 'exact', head: true });
+  results.totalUsers = totalUsers || 0;
+  
+  // 帖子总数
+  const { count: totalPosts } = await supabaseClient
+    .from('posts').select('*', { count: 'exact', head: true });
+  results.totalPosts = totalPosts || 0;
+  
+  // 评论总数
+  const { count: totalComments } = await supabaseClient
+    .from('comments').select('*', { count: 'exact', head: true });
+  results.totalComments = totalComments || 0;
+  
+  // 稿件总数
+  const { count: totalManuscripts } = await supabaseClient
+    .from('manuscripts').select('*', { count: 'exact', head: true });
+  results.totalManuscripts = totalManuscripts || 0;
+  
+  // 今日新增帖子
+  const today = new Date().toISOString().split('T')[0];
+  const { count: todayPosts } = await supabaseClient
+    .from('posts').select('*', { count: 'exact', head: true })
+    .gte('created_at', today);
+  results.todayPosts = todayPosts || 0;
+  
+  // 今日新增用户
+  const { count: todayUsers } = await supabaseClient
+    .from('profiles').select('*', { count: 'exact', head: true })
+    .gte('created_at', today);
+  results.todayUsers = todayUsers || 0;
+  
+  return { data: results, error: null };
+}
+
+// 获取所有用户列表（管理员专用）
+async function fetchAllUsers() {
+  if (!supabaseClient) return { error: 'Supabase 未初始化' };
+  
+  const { data: profiles, error: profileErr } = await supabaseClient
+    .from('profiles')
+    .select('id, nickname, is_admin, created_at')
+    .order('created_at', { ascending: false });
+  if (profileErr) return { data: null, error: profileErr };
+  
+  // 获取每个用户的帖子和稿件数量
+  const enriched = [];
+  for (const p of (profiles || [])) {
+    const { count: postCount } = await supabaseClient
+      .from('posts').select('*', { count: 'exact', head: true })
+      .eq('user_id', p.id);
+    const { count: msCount } = await supabaseClient
+      .from('manuscripts').select('*', { count: 'exact', head: true })
+      .eq('user_id', p.id);
+    enriched.push({
+      id: p.id,
+      nickname: p.nickname,
+      is_admin: p.is_admin,
+      created_at: p.created_at,
+      post_count: postCount || 0,
+      manuscript_count: msCount || 0
+    });
+  }
+  return { data: enriched, error: null };
+}
+
+// 切换用户管理员状态
+async function toggleUserAdmin(userId, makeAdmin) {
+  if (!supabaseClient) return { error: 'Supabase 未初始化' };
+  
+  const { error } = await supabaseClient
+    .rpc('toggle_admin', { target_user_id: userId, make_admin: makeAdmin });
+  return { error };
+}
+
+// 管理员删除帖子
+async function adminDeletePost(postId) {
+  if (!supabaseClient) return { error: 'Supabase 未初始化' };
+  
+  const { error } = await supabaseClient
+    .from('posts')
+    .delete()
+    .eq('id', postId);
+  return { error };
+}
+
+// 管理员删除评论
+async function adminDeleteComment(commentId) {
+  if (!supabaseClient) return { error: 'Supabase 未初始化' };
+  
+  const { error } = await supabaseClient
+    .from('comments')
+    .delete()
+    .eq('id', commentId);
+  return { error };
+}
+
+// 获取所有帖子（管理员视角，含作者信息）
+async function adminFetchAllPosts(page, pageSize) {
+  if (!supabaseClient) return { error: 'Supabase 未初始化' };
+  page = page || 1;
+  pageSize = pageSize || 20;
+  
+  const { data: posts, error, count } = await supabaseClient
+    .from('posts')
+    .select('id, user_id, content, images, likes_count, comments_count, created_at', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range((page - 1) * pageSize, page * pageSize - 1);
+  
+  if (error) return { data: null, error, count };
+  if (!posts || posts.length === 0) return { data: [], count: 0, error: null };
+  
+  // 查询作者
+  const userIds = [...new Set(posts.map(p => p.user_id))];
+  const { data: profiles } = await supabaseClient
+    .from('profiles')
+    .select('id, nickname')
+    .in('id', userIds);
+  
+  const profileMap = {};
+  (profiles || []).forEach(p => { profileMap[p.id] = p; });
+  
+  const enriched = posts.map(p => Object.assign({}, p, { profiles: profileMap[p.user_id] || null }));
+  return { data: enriched, count, error: null };
+}
+
+// 管理员获取所有评论（含帖子和作者信息）
+async function adminFetchAllComments(page, pageSize) {
+  if (!supabaseClient) return { error: 'Supabase 未初始化' };
+  page = page || 1;
+  pageSize = pageSize || 30;
+  
+  const { data: comments, error, count } = await supabaseClient
+    .from('comments')
+    .select('id, post_id, user_id, content, created_at', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range((page - 1) * pageSize, page * pageSize - 1);
+  
+  if (error) return { data: null, error, count };
+  if (!comments || comments.length === 0) return { data: [], count: 0, error: null };
+  
+  // 查询作者和帖子内容摘要
+  const userIds = [...new Set(comments.map(c => c.user_id))];
+  const postIds = [...new Set(comments.map(c => c.post_id))];
+  
+  const [{ data: profiles }, { data: posts }] = await Promise.all([
+    supabaseClient.from('profiles').select('id, nickname').in('id', userIds),
+    supabaseClient.from('posts').select('id, content').in('id', postIds)
+  ]);
+  
+  const profileMap = {}; (profiles || []).forEach(p => { profileMap[p.id] = p; });
+  const postMap = {}; (posts || []).forEach(p => { postMap[p.id] = p; });
+  
+  const enriched = comments.map(c => Object.assign({}, c, {
+    profiles: profileMap[c.user_id] || null,
+    post_title: (postMap[c.post_id] || {}).content ? (postMap[c.post_id].content || '').substring(0, 40) + '...' : '(帖子已删除)'
+  }));
+  
+  return { data: enriched, count, error: null };
+}
