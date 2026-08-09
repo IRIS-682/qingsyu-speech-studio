@@ -2633,7 +2633,7 @@ function switchModule(name) {
   if (name === 'community') renderCommunityFeed();
   if (name === 'admin') refreshAdminDashboard();
   // 每次进入首页 → 放飞纸飞机
-  // 纸飞机已移除
+  if (name === 'home') flyPaperPlane();
   // Nora Vane inspired: staggered entrance for key elements
   var edHeader = target.querySelector('.ed-section-header');
   var keyEls = target.querySelectorAll('.ed-section-header, .hot-cat-grid-v2 > *, .hot-source-grid-v2 > *, .hot-collect-box, .wb-type-v2, .wb-layout-v2 > *, .quote-tabs, .quote-grid > *, .library-filters, .library-grid > *, .analysis-input, .admin-tabs, .admin-stats-grid > *, .community-post-box, .community-feed > *');
@@ -4677,7 +4677,7 @@ function init() {
 
     // 已看过引导 → 直接放纸飞机；未看过 → 引导关闭后 triggerHomeEntrance 中触发
     if(localStorage.getItem('guideCompleted_v3')==='1'){
-    // 纸飞机已移除
+      setTimeout(function(){ flyPaperPlane(); }, 400);
     }
   } catch(e) {
     console.error('[Init] 页面初始化出错:', e);
@@ -5961,7 +5961,7 @@ function triggerHomeEntrance(){
   var home=document.getElementById('module-home');
   if(!home) return;
   // 引导关闭后放飞纸飞机
-  // 纸飞机已移除
+  flyPaperPlane();
   var els=home.querySelectorAll('.hero-title, .hero-subtitle, .hero-sub, .hero-en, .hero-desc, .cta, .divider, .modules .card, .mini-section, .foot-grid, .foot-bottom');
   els.forEach(function(el, i){
     el.style.opacity='0';

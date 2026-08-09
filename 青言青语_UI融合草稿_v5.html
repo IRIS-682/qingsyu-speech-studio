@@ -651,15 +651,8 @@ body { overflow-x: hidden; background: #FFF9F0; }
 .dot-grid-bg{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:2;pointer-events:none;opacity:0.025;background-image:radial-gradient(rgba(42,33,24,0.5) 1px,transparent 0),radial-gradient(rgba(42,33,24,0.5) 1px,transparent 0);background-size:24px 24px;background-position:0 0,12px 12px}
 /* ===== 纸飞机动画 ===== */
 #paperPlaneLayer{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:4;pointer-events:none;overflow:hidden}
-.paper-plane{position:absolute;width:260px;height:260px;will-change:transform,opacity;filter:drop-shadow(0 12px 28px rgba(200,180,130,0.22));transform-origin:center center}
-.paper-plane svg{width:100%;height:100%;overflow:visible}
-.paper-plane.plane-shake{animation:planeShake 0.5s ease-out}
-@keyframes planeShake{0%{filter:drop-shadow(0 12px 28px rgba(200,180,130,0.22))}15%{filter:drop-shadow(0 0 36px rgba(245,232,192,0.6)) drop-shadow(0 14px 32px rgba(200,180,130,0.35))}100%{filter:drop-shadow(0 12px 28px rgba(200,180,130,0.22))}}
-.impact-ring{position:absolute;border-radius:50%;pointer-events:none;border:2px solid rgba(245,232,192,0.5);will-change:transform,opacity;animation:impactRing 1.2s cubic-bezier(.2,.6,.3,1) forwards}
-.impact-ring-2{position:absolute;border-radius:50%;pointer-events:none;border:1px solid rgba(200,180,130,0.35);will-change:transform,opacity;animation:impactRing 1.4s cubic-bezier(.2,.6,.3,1) .15s forwards}
-.impact-spark{position:absolute;width:6px;height:6px;border-radius:50%;background:rgba(245,232,192,0.8);pointer-events:none;will-change:transform,opacity}
-@keyframes impactRing{0%{width:0;height:0;opacity:1;margin-left:0;margin-top:0;border-width:3px}100%{width:320px;height:320px;opacity:0;margin-left:-160px;margin-top:-160px;border-width:1px}}
-@keyframes impactSpark{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--sx),var(--sy)) scale(0.3)}}
+.paper-plane{position:absolute;width:120px;height:120px;will-change:transform,opacity;filter:drop-shadow(0 8px 20px rgba(178,58,58,0.15))}
+.paper-plane svg{width:100%;height:100%}
 .plane-trail{position:absolute;border-radius:50%;pointer-events:none;will-change:transform,opacity;animation:trailFade 4s ease-out forwards}
 @keyframes trailFade{0%{opacity:0.35;transform:scale(0.3)}15%{opacity:0.28;transform:scale(1)}100%{opacity:0;transform:scale(3)}}
 /* ===== 粗野主义边框系统 (Nora Vane inspired) ===== */
@@ -2633,7 +2626,7 @@ function switchModule(name) {
   if (name === 'community') renderCommunityFeed();
   if (name === 'admin') refreshAdminDashboard();
   // 每次进入首页 → 放飞纸飞机
-  // 纸飞机已移除
+  if (name === 'home') flyPaperPlane();
   // Nora Vane inspired: staggered entrance for key elements
   var edHeader = target.querySelector('.ed-section-header');
   var keyEls = target.querySelectorAll('.ed-section-header, .hot-cat-grid-v2 > *, .hot-source-grid-v2 > *, .hot-collect-box, .wb-type-v2, .wb-layout-v2 > *, .quote-tabs, .quote-grid > *, .library-filters, .library-grid > *, .analysis-input, .admin-tabs, .admin-stats-grid > *, .community-post-box, .community-feed > *');
@@ -2658,185 +2651,92 @@ function goWorkbench(type) {
 // 纸飞机动画（米白色 → 左上到右下 + 水彩拖尾）
 // ========================================================================
 var planeFlying = false;
-// ========================================================================
-// 纸飞机动画（v6：3D折纸 + 复杂多段飞行轨迹）
-// ========================================================================
-var planeFlying = false;
-var impactTriggered = false;
 function flyPaperPlane() {
-  if (planeFlying) return;
+  if (planeFlying) return; // 防止重复触发
   planeFlying = true;
-  impactTriggered = false;
   var layer = document.getElementById('paperPlaneLayer');
   if (!layer) { planeFlying = false; return; }
 
+  // 清理旧元素
   layer.innerHTML = '';
 
-  // 创建纸飞机（更米黄、更亮的3D折纸）
+  // 创建纸飞机（更精致优雅的设计）
   var plane = document.createElement('div');
   plane.className = 'paper-plane';
   plane.innerHTML =
-    '<svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">' +
-      '<defs>' +
-        '<linearGradient id="wingTop7" x1="0%" y1="0%" x2="100%" y2="50%">' +
-          '<stop offset="0%" stop-color="#FCF3DC"/>' +
-          '<stop offset="100%" stop-color="#F5E8C0"/>' +
-        '</linearGradient>' +
-        '<linearGradient id="wingSide7" x1="0%" y1="0%" x2="100%" y2="100%">' +
-          '<stop offset="0%" stop-color="#F0E2B8"/>' +
-          '<stop offset="100%" stop-color="#E8D8A8"/>' +
-        '</linearGradient>' +
-        '<linearGradient id="wingBottom7" x1="0%" y1="0%" x2="100%" y2="100%">' +
-          '<stop offset="0%" stop-color="#EBDCB0"/>' +
-          '<stop offset="100%" stop-color="#E0CE9C"/>' +
-        '</linearGradient>' +
-      '</defs>' +
-      // 主翼面（最亮）
-      '<path d="M8 70 L128 22 L72 70 Z" fill="url(#wingTop7)" stroke="#D4C498" stroke-width="1" stroke-linejoin="round"/>' +
-      // 副翼面（稍暗）
-      '<path d="M72 70 L128 22 L130 118 L82 78 Z" fill="url(#wingSide7)" stroke="#C9B88A" stroke-width="0.8" stroke-linejoin="round"/>' +
-      // 底面三角
-      '<path d="M72 70 L130 118 L82 78 Z" fill="url(#wingBottom7)" stroke="#C9B88A" stroke-width="0.5" stroke-linejoin="round"/>' +
-      // 中心折痕（亮线）
-      '<line x1="8" y1="70" x2="72" y2="70" stroke="#FFF8E0" stroke-width="1" opacity="0.8"/>' +
-      '<line x1="72" y1="70" x2="128" y2="22" stroke="#FFF8E0" stroke-width="0.8" opacity="0.6"/>' +
-      // 副折痕
-      '<line x1="72" y1="70" x2="130" y2="118" stroke="#C9B88A" stroke-width="0.5" opacity="0.4"/>' +
-      // 内折小三角
-      '<path d="M72 70 L98 44 L88 76 Z" fill="#E8D8A8" stroke="#C9B88A" stroke-width="0.3" opacity="0.6"/>' +
-      // 鼻尖高光
-      '<circle cx="122" cy="26" r="3" fill="#FFFDF0" opacity="0.8"/>' +
-      // 尾翼阴影
-      '<path d="M8 70 L20 65 L14 76 Z" fill="#C9B88A" opacity="0.3"/>' +
-      // 纸张纹理
-      '<line x1="40" y1="60" x2="60" y2="62" stroke="#FFF8E0" stroke-width="0.2" opacity="0.4"/>' +
-      '<line x1="50" y1="50" x2="85" y2="40" stroke="#FFF8E0" stroke-width="0.2" opacity="0.3"/>' +
+    '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">' +
+      // 主翼面（左上大三角）
+      '<path d="M8 60 L110 14 L62 60 Z" fill="#FAF4E8" stroke="#C9B98F" stroke-width="1.2" stroke-linejoin="round"/>' +
+      // 右下翼面
+      '<path d="M62 60 L110 106 L72 64 Z" fill="#EFE5D0" stroke="#C9B98F" stroke-width="1" stroke-linejoin="round"/>' +
+      // 中心折线（暗面）
+      '<path d="M8 60 L62 60 L110 14 Z" fill="#F2E8D2" stroke="none" opacity="0.6"/>' +
+      // 中线（折痕高光）
+      '<line x1="8" y1="60" x2="62" y2="60" stroke="#D4C5A9" stroke-width="0.8" opacity="0.7"/>' +
+      '<line x1="62" y1="60" x2="110" y2="14" stroke="#D4C5A9" stroke-width="0.6" opacity="0.5"/>' +
+      '<line x1="62" y1="60" x2="110" y2="106" stroke="#D4C5A9" stroke-width="0.6" opacity="0.5"/>' +
+      // 内折翼（小三角装饰）
+      '<path d="M62 60 L82 38 L72 64 Z" fill="#E8DBC4" stroke="#BFAE8C" stroke-width="0.5" stroke-linejoin="round" opacity="0.8"/>' +
+      // 鼻尖微高光
+      '<circle cx="105" cy="18" r="2" fill="#FFFDF5" opacity="0.6"/>' +
+      // 尾翼微小阴影
+      '<path d="M8 60 L18 56 L12 62 Z" fill="#D4C5A9" opacity="0.4"/>' +
     '</svg>';
   layer.appendChild(plane);
 
-  var W = window.innerWidth;
-  var H = window.innerHeight;
-  var offset = 130; // 飞机中心偏移（260px尺寸的一半）
-
-  // ===== 平滑曲线轨迹（减少关键帧 + 正弦缓动）=====
-  // 只用7个关键点，配合 easeInOutSine 产生平滑曲线
-  var waypoints = [
-    { t: 0.00, x: -0.20, y: -0.18, scale: 0.30, rot: -40 },
-    { t: 0.20, x: 0.15,  y: 0.12,  scale: 0.55, rot: -15 },
-    { t: 0.38, x: 0.42,  y: 0.38,  scale: 0.85, rot: 5 },
-    { t: 0.42, x: 0.50,  y: 0.48,  scale: 1.10, rot: 12 },  // 冲击点
-    { t: 0.55, x: 0.72,  y: 0.42,  scale: 0.70, rot: 5 },
-    { t: 0.72, x: 0.95,  y: 0.15,  scale: 0.50, rot: -15 },
-    { t: 0.85, x: 0.80,  y: 0.65,  scale: 0.55, rot: -55 }, // 回旋
-    { t: 1.00, x: 1.10,  y: 1.05,  scale: 0.40, rot: -80 }  // 飞离右下
-  ];
-
-  var duration = 7000; // 7秒，更舒缓
+  // 路径参数（更慢更优雅）
+  var startX = -140, startY = -100;
+  var endX = window.innerWidth + 140, endY = window.innerHeight + 100;
+  var duration = 4800; // 4.8秒飞过（之前2.4秒，翻倍）
   var startTime = null;
 
+  // 水彩拖尾颜色池（更柔和的米白色系）
   var trailColors = [
-    'rgba(232,99,90,0.06)',
-    'rgba(178,58,58,0.05)',
-    'rgba(184,161,118,0.12)',
-    'rgba(201,166,78,0.07)',
-    'rgba(255,179,71,0.05)',
-    'rgba(155,149,140,0.08)'
+    'rgba(232,99,90,0.10)',
+    'rgba(178,58,58,0.08)',
+    'rgba(184,161,118,0.14)',
+    'rgba(201,166,78,0.10)',
+    'rgba(232,120,58,0.08)',
+    'rgba(255,179,71,0.08)',
+    'rgba(155,149,140,0.10)'
   ];
   var trailIndex = 0;
   var trailCounter = 0;
 
-  function lerp(a, b, t) { return a + (b - a) * t; }
-
-  // 全程使用正弦缓动，最平滑
-  function smoothStep(t) {
-    return -(Math.cos(Math.PI * t) - 1) / 2;
-  }
-
-  // 在关键帧之间插值（平滑正弦缓动）
-  function getStateAt(progress) {
-    for (var i = 0; i < waypoints.length - 1; i++) {
-      var a = waypoints[i], b = waypoints[i + 1];
-      if (progress >= a.t && progress <= b.t) {
-        var localT = (progress - a.t) / (b.t - a.t);
-        var eased = smoothStep(localT);
-        return {
-          x: lerp(a.x, b.x, eased),
-          y: lerp(a.y, b.y, eased),
-          scale: lerp(a.scale, b.scale, eased),
-          rot: lerp(a.rot, b.rot, eased)
-        };
-      }
-    }
-    return waypoints[waypoints.length - 1];
-  }
-
-  // 触发冲击波
-  function triggerImpact(cx, cy) {
-    if (impactTriggered) return;
-    impactTriggered = true;
-    plane.classList.add('plane-shake');
-    setTimeout(function() { plane.classList.remove('plane-shake'); }, 500);
-
-    var ring1 = document.createElement('div');
-    ring1.className = 'impact-ring';
-    ring1.style.left = cx + 'px';
-    ring1.style.top = cy + 'px';
-    layer.appendChild(ring1);
-    setTimeout(function() { if (ring1.parentNode) ring1.parentNode.removeChild(ring1); }, 1300);
-
-    var ring2 = document.createElement('div');
-    ring2.className = 'impact-ring-2';
-    ring2.style.left = cx + 'px';
-    ring2.style.top = cy + 'px';
-    layer.appendChild(ring2);
-    setTimeout(function() { if (ring2.parentNode) ring2.parentNode.removeChild(ring2); }, 1600);
-
-    for (var i = 0; i < 8; i++) {
-      var spark = document.createElement('div');
-      spark.className = 'impact-spark';
-      var angle = (Math.PI * 2 * i) / 8 + Math.random() * 0.3;
-      var dist = 60 + Math.random() * 60;
-      spark.style.left = cx + 'px';
-      spark.style.top = cy + 'px';
-      spark.style.setProperty('--sx', Math.cos(angle) * dist + 'px');
-      spark.style.setProperty('--sy', Math.sin(angle) * dist + 'px');
-      spark.style.animation = 'impactSpark 0.8s cubic-bezier(.2,.6,.3,1) forwards';
-      layer.appendChild(spark);
-      setTimeout(function(s) { return function() { if (s.parentNode) s.parentNode.removeChild(s); }; }(spark), 900);
-    }
+  function easeInOutCubic(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   }
 
   function animate(timestamp) {
     if (!startTime) startTime = timestamp;
     var elapsed = timestamp - startTime;
     var progress = Math.min(elapsed / duration, 1);
-    var state = getStateAt(progress);
+    var eased = easeInOutCubic(progress);
 
-    var px = state.x * W;
-    var py = state.y * H;
-    var tx = px - offset * state.scale;
-    var ty = py - offset * state.scale;
+    // 抛物线路径（更舒缓的弧度）
+    var x = startX + (endX - startX) * eased;
+    var y = startY + (endY - startY) * eased - Math.sin(eased * Math.PI) * 120;
+    // 旋转角度（更优雅的微动）
+    var angle = 28 + Math.sin(eased * Math.PI) * 12;
 
-    plane.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + state.scale + ') rotate(' + state.rot + 'deg)';
-    plane.style.opacity = progress < 0.03 ? progress / 0.03 : (progress > 0.97 ? (1 - progress) / 0.03 : 1);
+    plane.style.transform = 'translate(' + x + 'px,' + y + 'px) rotate(' + angle + 'deg)';
+    plane.style.opacity = progress < 0.04 ? progress / 0.04 : (progress > 0.94 ? (1 - progress) / 0.06 : 1);
 
-    // 冲击触发
-    if (progress >= 0.40 && progress <= 0.44 && !impactTriggered) {
-      triggerImpact(px, py);
-    }
-
-    // 拖尾
+    // 每4帧生成一个拖尾点（频率更低，更稀疏）
     trailCounter++;
-    var trailInterval = state.scale > 0.6 ? 4 : 6;
-    if (trailCounter % trailInterval === 0 && progress > 0.02 && progress < 0.98) {
-      spawnTrail(layer, px, py, trailColors[trailIndex % trailColors.length]);
+    if (trailCounter % 4 === 0 && progress > 0.03 && progress < 0.97) {
+      spawnTrail(layer, x + 60, y + 60, trailColors[trailIndex % trailColors.length]);
       trailIndex++;
     }
 
     if (progress < 1) {
       requestAnimationFrame(animate);
     } else {
-      setTimeout(function() { planeFlying = false; }, 800);
+      // 飞行结束
+      setTimeout(function() {
+        planeFlying = false;
+      }, 800);
+      // 拖尾会在 trailFade 动画结束后自动消失（4秒）
     }
   }
 
@@ -2846,14 +2746,15 @@ function flyPaperPlane() {
 function spawnTrail(layer, x, y, color) {
   var blob = document.createElement('div');
   blob.className = 'plane-trail';
-  var size = 16 + Math.random() * 20;
+  var size = 20 + Math.random() * 26;
   blob.style.left = (x - size / 2) + 'px';
   blob.style.top = (y - size / 2) + 'px';
   blob.style.width = size + 'px';
   blob.style.height = size + 'px';
   blob.style.background = 'radial-gradient(circle,' + color + ',transparent 70%)';
-  blob.style.filter = 'blur(' + (5 + Math.random() * 5) + 'px)';
+  blob.style.filter = 'blur(' + (4 + Math.random() * 5) + 'px)';
   layer.appendChild(blob);
+  // 4.1秒后清除DOM（与trailFade动画时长4s匹配）
   setTimeout(function() {
     if (blob.parentNode) blob.parentNode.removeChild(blob);
   }, 4100);
@@ -4677,7 +4578,7 @@ function init() {
 
     // 已看过引导 → 直接放纸飞机；未看过 → 引导关闭后 triggerHomeEntrance 中触发
     if(localStorage.getItem('guideCompleted_v3')==='1'){
-    // 纸飞机已移除
+      setTimeout(function(){ flyPaperPlane(); }, 400);
     }
   } catch(e) {
     console.error('[Init] 页面初始化出错:', e);
@@ -5961,7 +5862,7 @@ function triggerHomeEntrance(){
   var home=document.getElementById('module-home');
   if(!home) return;
   // 引导关闭后放飞纸飞机
-  // 纸飞机已移除
+  flyPaperPlane();
   var els=home.querySelectorAll('.hero-title, .hero-subtitle, .hero-sub, .hero-en, .hero-desc, .cta, .divider, .modules .card, .mini-section, .foot-grid, .foot-bottom');
   els.forEach(function(el, i){
     el.style.opacity='0';
