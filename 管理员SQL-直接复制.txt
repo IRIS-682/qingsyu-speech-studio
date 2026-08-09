@@ -1,12 +1,23 @@
+/* ============================================================
+   青言青语 SaaS 平台 — 后台管理 RLS 策略
+   一批执行即可（已简化，删除了 plpgsql 复杂函数）
+   ============================================================ */
+
+/* Step 1: is_admin 函数（纯 SQL，最稳定） */
 create or replace function public.is_admin()
 returns boolean
 language sql
 stable
 security definer
 as $$
-  select coalesce((select is_admin from public.profiles where id = auth.uid()), false);
+  select coalesce(
+    (select p.is_admin from public.profiles p where p.id = auth.uid()),
+    false
+  );
 $$;
 
+
+/* Step 2: profiles 表 — 管理员可见所有用户 */
 drop policy if exists "admin_profiles_all" on public.profiles;
 create policy "admin_profiles_all"
   on public.profiles
@@ -14,6 +25,8 @@ create policy "admin_profiles_all"
   to authenticated
   using ( public.is_admin() );
 
+
+/* Step 3: manuscripts 表 — 管理员可见、可删除所有稿件 */
 drop policy if exists "admin_manuscripts_all" on public.manuscripts;
 create policy "admin_manuscripts_all"
   on public.manuscripts
@@ -28,6 +41,8 @@ create policy "admin_manuscripts_delete"
   to authenticated
   using ( public.is_admin() );
 
+
+/* Step 4: posts 表 — 管理员可删、可改所有帖子 */
 drop policy if exists "admin_posts_delete" on public.posts;
 create policy "admin_posts_delete"
   on public.posts
@@ -42,6 +57,8 @@ create policy "admin_posts_update"
   to authenticated
   using ( public.is_admin() );
 
+
+/* Step 5: comments 表 — 管理员可删所有评论 */
 drop policy if exists "admin_comments_delete" on public.comments;
 create policy "admin_comments_delete"
   on public.comments
@@ -49,9 +66,15 @@ create policy "admin_comments_delete"
   to authenticated
   using ( public.is_admin() );
 
+
+/* Step 6: user_settings 表 — 管理员可见所有设置 */
 drop policy if exists "admin_settings_all" on public.user_settings;
 create policy "admin_settings_select_all"
   on public.user_settings
   for select
   to authenticated
   using ( public.is_admin() );
+
+
+/* 完成 */
+do $$ begin raise notice 'OK'; end; $$;

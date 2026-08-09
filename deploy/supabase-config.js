@@ -573,12 +573,13 @@ async function fetchAllUsers() {
   return { data: enriched, error: null };
 }
 
-// 切换用户管理员状态
+// 切换用户管理员状态（直接 update，RLS 策略会阻止非管理员操作）
 async function toggleUserAdmin(userId, makeAdmin) {
   if (!supabaseClient) return { error: 'Supabase 未初始化' };
-  
   const { error } = await supabaseClient
-    .rpc('toggle_admin', { target_user_id: userId, make_admin: makeAdmin });
+    .from('profiles')
+    .update({ is_admin: makeAdmin, updated_at: new Date().toISOString() })
+    .eq('id', userId);
   return { error };
 }
 
