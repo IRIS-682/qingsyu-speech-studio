@@ -1079,7 +1079,7 @@ body { overflow-x: hidden; background: #FFF9F0; }
   #module-home .hero-title .mark::before,#module-home .hero-title .mark::after{font-size:48px}
   #module-home .hero-title .mark{padding-left:48px;padding-right:52px}
   /* 导航栏移动端 */
-  .navbar{padding:10px 12px;min-height:56px}
+  .navbar{padding:10px 12px;min-height:64px}
   .navbar-inner{position:relative}
   .navbar-logo{cursor:pointer}
   .navbar-tabs{display:none}
@@ -1089,11 +1089,19 @@ body { overflow-x: hidden; background: #FFF9F0; }
   .navbar-tabs.show-mobile li .nav-label{font-size:17px}
   .navbar-tabs.show-mobile li.active::after{display:none}
   .navbar-tabs.show-mobile li.active{background:rgba(178,58,58,0.06)}
-  .nav-hamburger{display:flex!important;flex-direction:column;gap:5px;width:32px;height:32px;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;padding:4px;z-index:1001}
-  .nav-hamburger span{display:block;width:22px;height:2.5px;background:#5C5651;border-radius:2px;transition:all .35s ease}
-  .nav-hamburger.open span:nth-child(1){transform:translateY(7.5px) rotate(45deg)}
-  .nav-hamburger.open span:nth-child(2){opacity:0}
-  .nav-hamburger.open span:nth-child(3){transform:translateY(-7.5px) rotate(-45deg)}
+  .nav-hamburger{display:flex!important;flex-direction:column;gap:5px;width:40px;height:40px;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;padding:6px;z-index:1001;flex-shrink:0}
+  .navbar-user{padding:10px 14px;min-height:44px;min-width:64px}
+  .nav-user-icon{font-size:18px}
+  .navbar-settings{width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:18px}
+  /* 移动端：Vol标签移到左下角，避免与登录/设置按钮重叠 */
+  .vol{top:auto!important;bottom:12px!important;left:12px!important;right:auto!important;background:rgba(255,249,240,0.7);backdrop-filter:blur(10px);padding:4px 10px;border-radius:4px;border:1px solid rgba(184,161,118,0.15);z-index:50}
+  .vol-n{font-size:10px;letter-spacing:2px}
+  .vol-d{font-size:9px;letter-spacing:1px}
+  /* 移动端：印章缩小并移到logo旁边，不占据按钮区域 */
+  .seal{width:36px;height:36px;font-size:18px;bottom:12px;right:12px;border-width:2px;z-index:50;opacity:0.4}
+  .seal::before{inset:4px;border-width:1px}
+  /* 确保登录按钮不被遮挡 */
+  .navbar-user,.navbar-settings{position:relative;z-index:1002}
   .navbar-settings{margin-left:auto}
   .cta{flex-direction:column;align-items:center}
   .foot{flex-wrap:wrap;gap:20px}
@@ -1116,11 +1124,7 @@ body { overflow-x: hidden; background: #FFF9F0; }
   .ref-panel{width:100%!important;right:-100%!important}
   .ref-panel.show{right:0!important}
   .modal,.ai-settings-modal{width:96vw!important;max-height:90vh!important;margin:5vh 2vw!important}
-  /* 出版物元素缩小 */
-  .seal{width:40px;height:40px;font-size:22px;bottom:20px;right:20px}
-  .vol{top:16px;right:20px}
-  .vol-n{font-size:11px}
-  .vol-d{font-size:10px}
+  /* vol/seal 移动端样式已在 max-width:960px 块内定义，此处省略以避免覆盖 */
   /* 卡片触摸优化 */
   .card,.mini,.navbar-tabs li,.cta-btn,.guide-btn{padding-top:14px;padding-bottom:14px}
   /* 旧响应式规则合并 */
